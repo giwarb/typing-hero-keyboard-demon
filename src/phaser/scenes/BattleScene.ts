@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import type { GameSnapshot } from '../../game/simulation/state';
 
+const assetUrl = (path: string): string => `${import.meta.env.BASE_URL}${path}`;
+
 export class BattleScene extends Phaser.Scene {
   private hero!: Phaser.GameObjects.Image;
   private enemy!: Phaser.GameObjects.Image;
@@ -15,23 +17,23 @@ export class BattleScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.image('bg-battlefield', '/assets/generated/battlefield.png');
-    this.load.image('hero-idle', '/assets/generated/hero-idle.png');
-    this.load.image('hero-attack', '/assets/generated/hero-attack.png');
-    this.load.image('hero-hurt', '/assets/generated/hero-hurt.png');
-    this.load.image('hero-victory', '/assets/generated/hero-victory.png');
-    this.load.image('enemy-slime', '/assets/generated/enemy-slime.png');
-    this.load.image('enemy-mushroom', '/assets/generated/enemy-mushroom.png');
-    this.load.image('enemy-mimic', '/assets/generated/enemy-mimic.png');
-    this.load.image('enemy-boss', '/assets/generated/enemy-boss.png');
-    this.load.image('enemy-jelly', '/assets/generated/enemy-jelly.png');
-    this.load.image('enemy-book', '/assets/generated/enemy-book.png');
-    this.load.image('enemy-carrot', '/assets/generated/enemy-carrot.png');
-    this.load.image('enemy-robot', '/assets/generated/enemy-robot.png');
-    this.load.image('fx-slash', '/assets/generated/fx-slash.png');
-    this.load.image('fx-magic', '/assets/generated/fx-magic.png');
-    this.load.image('fx-hit', '/assets/generated/fx-hit.png');
-    this.load.image('fx-counter', '/assets/generated/fx-counter.png');
+    this.load.image('bg-battlefield', assetUrl('assets/generated/battlefield.png'));
+    this.load.image('hero-idle', assetUrl('assets/generated/hero-idle.png'));
+    this.load.image('hero-attack', assetUrl('assets/generated/hero-attack.png'));
+    this.load.image('hero-hurt', assetUrl('assets/generated/hero-hurt.png'));
+    this.load.image('hero-victory', assetUrl('assets/generated/hero-victory.png'));
+    this.load.image('enemy-slime', assetUrl('assets/generated/enemy-slime.png'));
+    this.load.image('enemy-mushroom', assetUrl('assets/generated/enemy-mushroom.png'));
+    this.load.image('enemy-mimic', assetUrl('assets/generated/enemy-mimic.png'));
+    this.load.image('enemy-boss', assetUrl('assets/generated/enemy-boss.png'));
+    this.load.image('enemy-jelly', assetUrl('assets/generated/enemy-jelly.png'));
+    this.load.image('enemy-book', assetUrl('assets/generated/enemy-book.png'));
+    this.load.image('enemy-carrot', assetUrl('assets/generated/enemy-carrot.png'));
+    this.load.image('enemy-robot', assetUrl('assets/generated/enemy-robot.png'));
+    this.load.image('fx-slash', assetUrl('assets/generated/fx-slash.png'));
+    this.load.image('fx-magic', assetUrl('assets/generated/fx-magic.png'));
+    this.load.image('fx-hit', assetUrl('assets/generated/fx-hit.png'));
+    this.load.image('fx-counter', assetUrl('assets/generated/fx-counter.png'));
   }
 
   create(): void {
