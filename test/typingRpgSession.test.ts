@@ -6,8 +6,8 @@ describe('TypingRpgSession', () => {
     const session = new TypingRpgSession();
     session.start();
 
-    session.input('n');
-    session.input('e');
+    session.input('a');
+    session.input('s');
 
     const snapshot = session.getSnapshot();
     expect(snapshot.typedIndex).toBe(2);
@@ -25,15 +25,15 @@ describe('TypingRpgSession', () => {
     expect(result.event).toBe('mistake');
     expect(snapshot.ended).toBe(false);
     expect(snapshot.stats.mistakes).toBe(1);
-    expect(getWeakestKey(snapshot.stats)).toBe('N');
-    expect(getWeakestFinger(snapshot.stats)).toBe('right-index');
+    expect(getWeakestKey(snapshot.stats)).toBe('A');
+    expect(getWeakestFinger(snapshot.stats)).toBe('left-pinky');
   });
 
   it('follows minion, minion, minion, boss wave cadence', () => {
     const session = new TypingRpgSession();
     session.start();
 
-    for (let defeated = 0; defeated < 3; defeated += 1) {
+    while (session.getSnapshot().stats.defeated < 3) {
       const prompt = session.getSnapshot().prompt.romaji;
       for (const char of prompt) session.input(char);
     }

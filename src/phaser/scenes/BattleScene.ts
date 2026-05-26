@@ -4,7 +4,8 @@ import type { GameSnapshot } from '../../game/simulation/state';
 export class BattleScene extends Phaser.Scene {
   private hero!: Phaser.GameObjects.Image;
   private enemy!: Phaser.GameObjects.Image;
-  private slash!: Phaser.GameObjects.Arc;
+  private playerFx!: Phaser.GameObjects.Image;
+  private enemyFx!: Phaser.GameObjects.Image;
   private snapshot: GameSnapshot | null = null;
   private attackT = 0;
   private hurtT = 0;
@@ -23,16 +24,23 @@ export class BattleScene extends Phaser.Scene {
     this.load.image('enemy-mushroom', '/assets/generated/enemy-mushroom.png');
     this.load.image('enemy-mimic', '/assets/generated/enemy-mimic.png');
     this.load.image('enemy-boss', '/assets/generated/enemy-boss.png');
+    this.load.image('enemy-jelly', '/assets/generated/enemy-jelly.png');
+    this.load.image('enemy-book', '/assets/generated/enemy-book.png');
+    this.load.image('enemy-carrot', '/assets/generated/enemy-carrot.png');
+    this.load.image('enemy-robot', '/assets/generated/enemy-robot.png');
+    this.load.image('fx-slash', '/assets/generated/fx-slash.png');
+    this.load.image('fx-magic', '/assets/generated/fx-magic.png');
+    this.load.image('fx-hit', '/assets/generated/fx-hit.png');
+    this.load.image('fx-counter', '/assets/generated/fx-counter.png');
   }
 
   create(): void {
     this.cameras.main.setBackgroundColor('#1278ca');
     this.createBackdrop();
     this.hero = this.add.image(185, 350, 'hero-idle').setOrigin(0.5, 1).setScale(0.46);
-    this.enemy = this.add.image(1080, 376, 'enemy-slime').setOrigin(0.5, 1).setScale(0.46);
-    this.slash = this.add.arc(850, 312, 110, 245, 25, false, 0xffd447, 0.95);
-    this.slash.setStrokeStyle(12, 0xfff2a6, 1);
-    this.slash.setVisible(false);
+    this.enemy = this.add.image(1080, 376, 'enemy-slime').setOrigin(0.5, 1).setScale(0.82);
+    this.playerFx = this.add.image(820, 325, 'fx-slash').setVisible(false).setScale(0.74);
+    this.enemyFx = this.add.image(360, 330, 'fx-counter').setVisible(false).setScale(0.62);
     this.events.on('snapshot', (snapshot: GameSnapshot) => this.applySnapshot(snapshot));
   }
 
@@ -44,35 +52,48 @@ export class BattleScene extends Phaser.Scene {
       this.attackT -= delta;
       this.hero.setTexture('hero-attack');
       this.hero.x = 185 + Math.sin(time * 35) * 12 + 44;
-      this.slash.setVisible(true);
-      this.slash.rotation += delta * 0.018;
+      this.playerFx.setVisible(true);
+      this.playerFx.setAlpha(Math.min(1, this.attackT / 120));
+      this.playerFx.setScale(0.72 + Math.sin(time * 28) * 0.04);
+      this.playerFx.rotation = Math.sin(time * 18) * 0.05;
       this.enemy.setAlpha(Math.sin(time * 48) > 0 ? 0.55 : 1);
     } else {
       this.hero.setTexture(this.snapshot?.ended ? 'hero-victory' : 'hero-idle');
       this.hero.x = 185;
-      this.slash.setVisible(false);
+      this.playerFx.setVisible(false);
       this.enemy.setAlpha(1);
     }
     if (this.hurtT > 0) {
       this.hurtT -= delta;
       this.hero.setTexture('hero-hurt');
+      this.enemyFx.setVisible(true);
+      this.enemyFx.setAlpha(Math.min(1, this.hurtT / 140));
+      this.enemyFx.setScale(0.48 + Math.sin(time * 36) * 0.05);
       this.cameras.main.shake(70, 0.0035);
       this.hero.x = 185 - Math.abs(Math.sin(time * 42)) * 14;
+    } else {
+      this.enemyFx.setVisible(false);
     }
   }
 
   private applySnapshot(snapshot: GameSnapshot): void {
-    const wasBoss = this.snapshot?.enemy.kind === 'boss';
+    const previousSprite = this.snapshot?.enemy.sprite;
     this.snapshot = snapshot;
-    if ((snapshot.enemy.kind === 'boss') !== wasBoss) {
+    if (snapshot.enemy.sprite !== previousSprite) {
       this.enemy.destroy();
       this.enemy = this.createEnemyImage(snapshot);
     } else {
-      this.enemy.setTexture(this.enemyTexture(snapshot));
-      this.enemy.setScale(snapshot.enemy.kind === 'boss' ? 0.42 : 0.48);
+      this.enemy.setTexture(snapshot.enemy.sprite);
+      this.enemy.setScale(snapshot.enemy.scale);
     }
-    if (snapshot.attackFlash > 0) this.attackT = snapshot.attackFlash;
-    if (snapshot.hurtFlash > 0) this.hurtT = snapshot.hurtFlash;
+    if (snapshot.attackFlash > 0) {
+      this.attackT = snapshot.attackFlash;
+      this.playerFx.setTexture(snapshot.enemy.kind === 'boss' ? 'fx-magic' : 'fx-slash');
+    }
+    if (snapshot.hurtFlash > 0) {
+      this.hurtT = snapshot.hurtFlash;
+      this.enemyFx.setTexture(snapshot.enemy.attackFx === 'magic' ? 'fx-magic' : 'fx-counter');
+    }
   }
 
   private createBackdrop(): void {
@@ -81,13 +102,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private createEnemyImage(snapshot: GameSnapshot): Phaser.GameObjects.Image {
-    return this.add.image(1080, 376, this.enemyTexture(snapshot))
+    return this.add.image(1080, 376, snapshot.enemy.sprite)
       .setOrigin(0.5, 1)
-      .setScale(snapshot.enemy.kind === 'boss' ? 0.42 : 0.48);
-  }
-
-  private enemyTexture(snapshot: GameSnapshot): string {
-    if (snapshot.enemy.kind === 'boss') return 'enemy-boss';
-    return ['enemy-slime', 'enemy-mushroom', 'enemy-mimic'][snapshot.wave % 3];
+      .setScale(snapshot.enemy.scale);
   }
 }

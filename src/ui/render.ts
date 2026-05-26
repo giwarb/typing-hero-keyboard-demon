@@ -1,5 +1,5 @@
 import { fingerNames, fingerTone, getFingerForKey, jisKeyboard, type FingerId } from '../game/input/keyboard';
-import { getAccuracy, getWeakestFinger, getWeakestKey, type GameSnapshot, type GameStats } from '../game/simulation/state';
+import { getAccuracy, getRank, getWeakestFinger, getWeakestKey, type GameSnapshot, type GameStats } from '../game/simulation/state';
 
 export type UiHandles = {
   root: HTMLElement;
@@ -40,7 +40,7 @@ export const buildUi = (mount: HTMLElement): UiHandles => {
           <div class="brand-sub">ことばでたたかうRPG</div>
         </div>
         <div class="hud-panel timer"><span class="clock">◷</span><b data-role="timer">01:00</b></div>
-        <div class="hud-panel wave"><span class="mini-slime"></span>ざこ <b data-role="wave">1 / 3</b></div>
+        <div class="hud-panel wave"><span class="mini-slime"></span><span>進行</span> <b data-role="wave">1 / 3</b></div>
         <div class="enemy-panel">
           <strong data-role="enemyName">グリーンスライム</strong>
           <div class="hp-row"><span>HP</span><div class="hp-shell"><div data-role="enemyHpFill" class="hp-fill"></div></div><b data-role="enemyHpText">90 / 90</b></div>
@@ -101,7 +101,7 @@ export const buildUi = (mount: HTMLElement): UiHandles => {
 
 export const renderSnapshot = (ui: UiHandles, snapshot: GameSnapshot): void => {
   ui.timer.textContent = formatTime(snapshot.timeLeft);
-  ui.wave.textContent = snapshot.enemy.kind === 'boss' ? `${snapshot.stats.bosses + 1}戦目` : `${(snapshot.wave % 4) + 1} / 3`;
+  ui.wave.textContent = snapshot.enemy.kind === 'boss' ? `ボス ${snapshot.stats.bosses + 1}` : `${(snapshot.wave % 4) + 1} / 3`;
   ui.enemyName.textContent = snapshot.enemy.name;
   ui.enemyHpFill.style.width = `${Math.round((snapshot.enemy.hp / snapshot.enemy.maxHp) * 100)}%`;
   ui.enemyHpText.textContent = `${snapshot.enemy.hp} / ${snapshot.enemy.maxHp}`;
@@ -125,22 +125,19 @@ export const renderSnapshot = (ui: UiHandles, snapshot: GameSnapshot): void => {
   markActiveKey(ui.keyboard, nextKey, snapshot.lastMistake);
   markActiveFinger(ui.hands, finger, snapshot.lastMistake !== null);
 
-  if (snapshot.ended) {
-    renderResult(ui, snapshot.stats);
-  }
+  if (snapshot.ended) renderResult(ui, snapshot.stats);
 };
 
 const renderKeyboard = (keyboard: HTMLElement): void => {
-  const keys = jisKeyboard.flat();
-  keyboard.replaceChildren(...keys.map((entry) => {
-      const keyEl = document.createElement('div');
-      keyEl.className = `key key-${fingerTone[entry.finger]}${entry.home ? ' is-home' : ''}`;
-      keyEl.dataset.key = entry.label.toUpperCase();
-      keyEl.style.setProperty('--x', `${entry.x}`);
-      keyEl.style.setProperty('--y', `${entry.y}`);
-      keyEl.style.setProperty('--wide', `${entry.wide ?? 1}`);
-      keyEl.innerHTML = `<b>${entry.label}</b><small>${entry.kana}</small>`;
-      return keyEl;
+  keyboard.replaceChildren(...jisKeyboard.flat().map((entry) => {
+    const keyEl = document.createElement('div');
+    keyEl.className = `key key-${fingerTone[entry.finger]}${entry.home ? ' is-home' : ''}`;
+    keyEl.dataset.key = entry.label.toUpperCase();
+    keyEl.style.setProperty('--x', `${entry.x}`);
+    keyEl.style.setProperty('--y', `${entry.y}`);
+    keyEl.style.setProperty('--wide', `${entry.wide ?? 1}`);
+    keyEl.innerHTML = `<b>${entry.label}</b><small>${entry.kana}</small>`;
+    return keyEl;
   }));
 };
 
@@ -153,7 +150,8 @@ const renderHands = (hands: HTMLElement): void => {
       const el = document.createElement('div');
       el.className = `finger finger-${fingerTone[finger]}`;
       el.dataset.finger = finger;
-      el.innerHTML = `<span></span><small>${fingerNames[finger].replace(`${side === 'left' ? '左手' : '右手'} `, '')}</small>`;
+      const sideName = side === 'left' ? '左手' : '右手';
+      el.innerHTML = `<span></span><small>${fingerNames[finger].replace(`${sideName} `, '')}</small>`;
       hand.append(el);
     });
     const palm = document.createElement('div');
@@ -165,8 +163,9 @@ const renderHands = (hands: HTMLElement): void => {
 
 const markActiveKey = (keyboard: HTMLElement, nextKey: string, mistake: string | null): void => {
   keyboard.querySelectorAll('.key').forEach((node) => {
-    node.classList.toggle('is-next', (node as HTMLElement).dataset.key === nextKey);
-    node.classList.toggle('is-mistake', mistake !== null && (node as HTMLElement).dataset.key === mistake);
+    const element = node as HTMLElement;
+    element.classList.toggle('is-next', element.dataset.key === nextKey);
+    element.classList.toggle('is-mistake', mistake !== null && element.dataset.key === mistake);
   });
 };
 
@@ -181,15 +180,27 @@ const markActiveFinger = (hands: HTMLElement, finger: FingerId, mistake: boolean
 const renderResult = (ui: UiHandles, stats: GameStats): void => {
   const weakFinger = getWeakestFinger(stats);
   const weakFingerText = weakFinger === 'none' ? 'なし' : fingerNames[weakFinger];
+  const rank = getRank(stats);
+  const accuracy = getAccuracy(stats);
   const speed = Math.round(stats.correct);
+  const nextLine = rank.nextTarget
+    ? `次のランクまで、正確にあと ${Math.max(0, rank.nextTarget - speed)} 文字/分が目標！`
+    : 'SSSランク到達！ここからは正確さと安定感の勝負！';
   ui.resultBody.innerHTML = `
-    <p class="result-comment">すごい！ ${stats.defeated}体のモンスターをたおした！</p>
+    <div class="rank-card rank-${rank.label.toLowerCase()}">
+      <span>ランク</span>
+      <b>${rank.label}</b>
+      <strong>${rank.title}</strong>
+      <p>${rank.description}</p>
+      <small>人間の高速タイピングは日本語ローマ字換算で300文字/分を超えるとかなり上級。SSSはその領域を目標にしています。</small>
+    </div>
+    <p class="result-comment">すごい！ ${stats.defeated}体のモンスターをたおした！ ${nextLine}</p>
     <dl>
       <dt>ボス討伐</dt><dd>${stats.bosses}体</dd>
       <dt>入力文字数</dt><dd>${stats.typed}</dd>
       <dt>正しく入力</dt><dd>${stats.correct}</dd>
       <dt>ミス</dt><dd>${stats.mistakes}</dd>
-      <dt>正解率</dt><dd>${getAccuracy(stats)}%</dd>
+      <dt>正解率</dt><dd>${accuracy}%</dd>
       <dt>1分間の入力速度</dt><dd>${speed} 文字/分</dd>
       <dt>苦手キー</dt><dd>${getWeakestKey(stats)}</dd>
       <dt>苦手な指</dt><dd>${weakFingerText}</dd>

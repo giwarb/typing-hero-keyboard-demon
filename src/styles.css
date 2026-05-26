@@ -179,6 +179,7 @@ body,
   color: #08090a;
   text-align: center;
   text-shadow: none;
+  z-index: 3;
 }
 
 .prompt-kana {
@@ -250,6 +251,7 @@ body,
   bottom: 0;
   width: min(1050px, calc(100vw - 190px));
   transform: translateX(-50%);
+  z-index: 4;
 }
 
 .keyboard {
@@ -332,6 +334,8 @@ body,
 }
 
 .guide-line {
+  position: relative;
+  z-index: 6;
   display: grid;
   place-items: center;
   height: 28px;
@@ -341,6 +345,8 @@ body,
 }
 
 .hands {
+  position: relative;
+  z-index: 5;
   display: flex;
   justify-content: center;
   gap: clamp(150px, 24vw, 330px);
@@ -413,6 +419,7 @@ body,
 .modal {
   position: absolute;
   inset: 0;
+  z-index: 20;
   display: none;
   place-items: center;
   background: rgba(0, 17, 33, 0.62);
@@ -474,6 +481,46 @@ body,
   text-align: left;
   font-size: 18px;
   font-weight: 900;
+}
+
+.rank-card {
+  display: grid;
+  gap: 4px;
+  margin: 8px auto 14px;
+  padding: 14px;
+  max-width: 430px;
+  border: 3px solid #ffd447;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rank-card span {
+  color: #d8efff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.rank-card b {
+  color: #ffe15b;
+  font-size: clamp(54px, 8vw, 84px);
+  line-height: 0.95;
+}
+
+.rank-card strong {
+  color: #fff3a8;
+  font-size: 21px;
+}
+
+.rank-card p,
+.rank-card small {
+  margin: 0;
+  color: #e7f6ff;
+  line-height: 1.45;
+  text-shadow: none;
+}
+
+.rank-card small {
+  font-size: 12px;
 }
 
 .result-body dt {
@@ -558,5 +605,95 @@ body,
 
   .palm {
     bottom: -82px;
+  }
+}
+
+@media (orientation: portrait) {
+  .top-hud {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .hud-panel {
+    min-height: 52px;
+    font-size: 18px;
+  }
+
+  .enemy-panel {
+    grid-column: 1 / -1;
+    min-height: 62px;
+    padding: 8px 12px;
+  }
+
+  .enemy-panel strong {
+    margin-bottom: 4px;
+    font-size: 16px;
+  }
+
+  .hp-row {
+    font-size: 15px;
+  }
+
+  .lesson-card {
+    top: 150px;
+    width: calc(100vw - 18px);
+    padding: 12px 10px;
+  }
+
+  .prompt-kana {
+    min-height: 44px;
+    font-size: clamp(30px, 10vw, 58px);
+    white-space: normal;
+    line-height: 1.1;
+  }
+
+  .prompt-romaji {
+    min-height: 38px;
+    flex-wrap: wrap;
+    gap: 2px 5px;
+    padding-top: 8px;
+    font-size: clamp(20px, 7vw, 38px);
+  }
+
+  .prompt-romaji .next {
+    padding: 0 7px;
+  }
+
+  .keyboard-dock {
+    width: calc(100vw - 10px);
+  }
+
+  .keyboard {
+    height: min(260px, 31vh);
+  }
+
+  .guide-line {
+    height: 24px;
+    font-size: 13px;
+  }
+
+  .hands {
+    height: 78px;
+    gap: 72px;
+  }
+
+  .hand {
+    padding-top: 0;
+  }
+
+  .palm {
+    bottom: -74px;
+    height: 96px;
+  }
+
+  .side-stats {
+    display: none;
   }
 }

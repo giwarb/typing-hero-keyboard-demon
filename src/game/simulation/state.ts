@@ -1,13 +1,17 @@
+import { getEnemyForWave } from '../content/enemies';
 import { pickPrompt, type Prompt } from '../content/words';
 import { getFingerForKey, type FingerId } from '../input/keyboard';
 
 export type EnemyKind = 'minion' | 'boss';
+
 export type EnemyState = {
   kind: EnemyKind;
   name: string;
   hp: number;
   maxHp: number;
   sprite: string;
+  scale: number;
+  attackFx: 'counter' | 'magic';
 };
 
 export type GameStats = {
@@ -35,9 +39,6 @@ export type GameSnapshot = {
   hurtFlash: number;
 };
 
-const minionNames = ['グリーンスライム', 'きのこマーチ', 'まんまるバット', 'たからばこミミック'];
-const bossNames = ['キーボードの魔王', 'ドラゴン先生', 'ロボットまじん'];
-
 const createStats = (): GameStats => ({
   typed: 0,
   correct: 0,
@@ -60,26 +61,21 @@ const createStats = (): GameStats => ({
 });
 
 const createEnemy = (wave: number): EnemyState => {
-  const boss = wave % 4 === 3;
-  if (boss) {
-    return {
-      kind: 'boss',
-      name: bossNames[Math.floor(wave / 4) % bossNames.length],
-      hp: 210,
-      maxHp: 210,
-      sprite: 'boss',
-    };
-  }
+  const definition = getEnemyForWave(wave);
   return {
-    kind: 'minion',
-    name: minionNames[wave % minionNames.length],
-    hp: 90,
-    maxHp: 90,
-    sprite: 'slime',
+    kind: definition.kind,
+    name: definition.name,
+    hp: definition.hp,
+    maxHp: definition.hp,
+    sprite: definition.sprite,
+    scale: definition.scale,
+    attackFx: definition.attackFx,
   };
 };
 
-const damageFor = (prompt: Prompt, boss: boolean) => Math.max(boss ? 70 : 95, prompt.romaji.length * 9);
+const damageFor = (prompt: Prompt, boss: boolean): number => (
+  Math.max(boss ? 74 : 96, prompt.romaji.length * 8)
+);
 
 export class TypingRpgSession {
   private snapshot: GameSnapshot;
@@ -167,7 +163,7 @@ export class TypingRpgSession {
       ...this.snapshot,
       wave: nextWave,
       typedIndex: 0,
-      prompt: pickPrompt(nextWave, nextEnemy.kind === 'boss'),
+      prompt: pickPrompt(nextWave + stats.correct, nextEnemy.kind === 'boss'),
       enemy: nextEnemy,
       stats: nextStats,
       attackFlash: 420,
@@ -214,4 +210,33 @@ export const getWeakestKey = (stats: GameStats): string => {
 export const getWeakestFinger = (stats: GameStats): FingerId | 'none' => {
   const entries = Object.entries(stats.weakFingers).sort((a, b) => b[1] - a[1]);
   return entries[0] && entries[0][1] > 0 ? (entries[0][0] as FingerId) : 'none';
+};
+
+export type Rank = {
+  label: 'D' | 'C' | 'B' | 'A' | 'S' | 'SS' | 'SSS';
+  title: string;
+  description: string;
+  nextTarget: number | null;
+};
+
+const rankTable: Array<Omit<Rank, 'nextTarget'>> = [
+  { label: 'D', title: 'ホームポジション見習い', description: 'まずは正しい指を見ながら、ゆっくり正確に打てています。' },
+  { label: 'C', title: 'ことばの旅人', description: 'キーの場所を少しずつ覚えています。毎日1分でかなり伸びます。' },
+  { label: 'B', title: 'タイピング剣士', description: '小学生の練習としてかなり良い速さです。ミスを減らすと一段上がります。' },
+  { label: 'A', title: 'キーボード勇者', description: '学校の課題入力ならかなり頼れる速さです。指使いも意識できています。' },
+  { label: 'S', title: '高速の魔法使い', description: '一般的な大人の実用速度に近いレベルです。正確さを保てば強いです。' },
+  { label: 'SS', title: '達人タイピスト', description: '熟練者レベルです。1分計測でもかなり高い集中力が必要です。' },
+  { label: 'SSS', title: '伝説の入力勇者', description: '人間の高速タイピング領域に迫る速さです。正確率も含めて別格です。' },
+];
+
+const rankThresholds = [0, 35, 70, 110, 160, 220, 300];
+
+export const getRank = (stats: GameStats): Rank => {
+  const accuracy = getAccuracy(stats);
+  const effectiveCpm = Math.round(stats.correct * Math.max(0.25, accuracy / 100));
+  let index = 0;
+  for (let i = 0; i < rankThresholds.length; i += 1) {
+    if (effectiveCpm >= rankThresholds[i] && accuracy >= (i >= 4 ? 88 : 0)) index = i;
+  }
+  return { ...rankTable[index], nextTarget: rankThresholds[index + 1] ?? null };
 };
