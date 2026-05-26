@@ -101,7 +101,11 @@ export const buildUi = (mount: HTMLElement): UiHandles => {
 
 export const renderSnapshot = (ui: UiHandles, snapshot: GameSnapshot): void => {
   ui.timer.textContent = formatTime(snapshot.timeLeft);
-  ui.wave.textContent = snapshot.enemy.kind === 'boss' ? `ボス ${snapshot.stats.bosses + 1}` : `${(snapshot.wave % 4) + 1} / 3`;
+  ui.wave.textContent = snapshot.enemy.kind === 'ultimate'
+    ? '究極'
+    : snapshot.enemy.kind === 'boss'
+      ? `ボス ${snapshot.stats.bosses + 1}`
+      : `${(snapshot.wave % 4) + 1} / 3`;
   ui.enemyName.textContent = snapshot.enemy.name;
   ui.enemyHpFill.style.width = `${Math.round((snapshot.enemy.hp / snapshot.enemy.maxHp) * 100)}%`;
   ui.enemyHpText.textContent = `${snapshot.enemy.hp} / ${snapshot.enemy.maxHp}`;
@@ -202,6 +206,9 @@ const renderResult = (ui: UiHandles, stats: GameStats): void => {
       <dt>ミス</dt><dd>${stats.mistakes}</dd>
       <dt>正解率</dt><dd>${accuracy}%</dd>
       <dt>1分間の入力速度</dt><dd>${speed} 文字/分</dd>
+      <dt>冒険スコア</dt><dd>${stats.score}</dd>
+      <dt>残りタイムボーナス</dt><dd>${stats.timeBonus}</dd>
+      <dt>究極ドラゴン</dt><dd>${stats.ultimateDefeated ? '討伐！' : '未到達'}</dd>
       <dt>苦手キー</dt><dd>${getWeakestKey(stats)}</dd>
       <dt>苦手な指</dt><dd>${weakFingerText}</dd>
     </dl>

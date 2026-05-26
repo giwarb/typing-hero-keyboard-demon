@@ -50,9 +50,22 @@ root.addEventListener('click', (event) => {
 
 window.addEventListener('keydown', (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
+  if (!session.getSnapshot().started && (event.code === 'Space' || event.code === 'Enter')) {
+    event.preventDefault();
+    restart();
+    return;
+  }
+  if (session.getSnapshot().ended && (event.code === 'Space' || event.code === 'Enter')) {
+    event.preventDefault();
+    restart();
+    return;
+  }
   const result = session.input(event.key);
   if (result.event === 'correct') audio.correct();
-  if (result.event === 'complete') audio.attack();
+  if (result.event === 'complete') {
+    audio.attack();
+    if (result.snapshot.enemy.kind === 'ultimate') audio.dragon();
+  }
   if (result.event === 'mistake') audio.mistake();
   emitSnapshot();
 });

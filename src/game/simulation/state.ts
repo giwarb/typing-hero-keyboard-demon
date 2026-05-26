@@ -1,8 +1,8 @@
-import { getEnemyForWave } from '../content/enemies';
+import { type EnemyKind, getEnemyForWave } from '../content/enemies';
 import { pickPrompt, type Prompt } from '../content/words';
 import { getFingerForKey, type FingerId } from '../input/keyboard';
 
-export type EnemyKind = 'minion' | 'boss';
+export type { EnemyKind };
 
 export type EnemyState = {
   kind: EnemyKind;
@@ -12,6 +12,7 @@ export type EnemyState = {
   sprite: string;
   scale: number;
   attackFx: 'counter' | 'magic';
+  tint?: number;
 };
 
 export type GameStats = {
@@ -21,6 +22,9 @@ export type GameStats = {
   defeated: number;
   bosses: number;
   streak: number;
+  score: number;
+  timeBonus: number;
+  ultimateDefeated: boolean;
   weakKeys: Record<string, number>;
   weakFingers: Record<FingerId, number>;
 };
@@ -46,6 +50,9 @@ const createStats = (): GameStats => ({
   defeated: 0,
   bosses: 0,
   streak: 0,
+  score: 0,
+  timeBonus: 0,
+  ultimateDefeated: false,
   weakKeys: {},
   weakFingers: {
     'left-pinky': 0,
@@ -60,22 +67,29 @@ const createStats = (): GameStats => ({
   },
 });
 
-const createEnemy = (wave: number): EnemyState => {
-  const definition = getEnemyForWave(wave);
+const createEnemy = (wave: number, ultimate = false): EnemyState => {
+  const definition = getEnemyForWave(wave, ultimate);
   return {
     kind: definition.kind,
     name: definition.name,
-    hp: definition.hp,
-    maxHp: definition.hp,
+    hp: definition.baseHp,
+    maxHp: definition.baseHp,
     sprite: definition.sprite,
     scale: definition.scale,
     attackFx: definition.attackFx,
+    tint: definition.tint,
   };
 };
 
-const damageFor = (prompt: Prompt, boss: boolean): number => (
-  Math.max(boss ? 74 : 96, prompt.romaji.length * 8)
+const shouldSpawnUltimate = (stats: GameStats, timeLeft: number): boolean => (
+  !stats.ultimateDefeated && stats.correct >= 160 && getAccuracy(stats) >= 88 && timeLeft >= 10_000
 );
+
+const damageFor = (prompt: Prompt, enemy: EnemyState): number => {
+  const base = Math.max(enemy.kind === 'minion' ? 78 : 64, prompt.romaji.length * 7);
+  if (enemy.kind === 'ultimate') return Math.max(58, Math.round(base * 0.72));
+  return base;
+};
 
 export class TypingRpgSession {
   private snapshot: GameSnapshot;
@@ -131,6 +145,7 @@ export class TypingRpgSession {
 
     stats.correct += 1;
     stats.streak += 1;
+    stats.score += 1 + Math.floor(stats.streak / 20);
     const typedIndex = this.snapshot.typedIndex + 1;
     if (typedIndex < this.snapshot.prompt.romaji.length) {
       this.snapshot = { ...this.snapshot, typedIndex, stats, lastMistake: null };
@@ -138,12 +153,12 @@ export class TypingRpgSession {
     }
 
     const enemy = { ...this.snapshot.enemy };
-    enemy.hp = Math.max(0, enemy.hp - damageFor(this.snapshot.prompt, enemy.kind === 'boss'));
+    enemy.hp = Math.max(0, enemy.hp - damageFor(this.snapshot.prompt, enemy));
     if (enemy.hp > 0) {
       this.snapshot = {
         ...this.snapshot,
         typedIndex: 0,
-        prompt: pickPrompt(this.snapshot.wave + stats.correct, enemy.kind === 'boss'),
+        prompt: pickPrompt(this.snapshot.wave + stats.correct, enemy.kind !== 'minion'),
         enemy,
         stats,
         attackFlash: 360,
@@ -152,18 +167,25 @@ export class TypingRpgSession {
       return { snapshot: this.getSnapshot(), event: 'complete' };
     }
 
-    const nextWave = this.snapshot.wave + 1;
-    const nextEnemy = createEnemy(nextWave);
+    const defeatedUltimate = this.snapshot.enemy.kind === 'ultimate';
+    const timeBonus = defeatedUltimate ? Math.ceil(this.snapshot.timeLeft / 1000) * 120 : 0;
     const nextStats = {
       ...stats,
       defeated: stats.defeated + 1,
-      bosses: stats.bosses + (this.snapshot.enemy.kind === 'boss' ? 1 : 0),
+      bosses: stats.bosses + (this.snapshot.enemy.kind !== 'minion' ? 1 : 0),
+      ultimateDefeated: stats.ultimateDefeated || defeatedUltimate,
+      timeBonus: stats.timeBonus + timeBonus,
+      score: stats.score + (this.snapshot.enemy.kind === 'minion' ? 60 : this.snapshot.enemy.kind === 'boss' ? 220 : 1200) + timeBonus,
     };
+
+    const nextWave = this.snapshot.wave + 1;
+    const spawnUltimate = shouldSpawnUltimate(nextStats, this.snapshot.timeLeft);
+    const nextEnemy = createEnemy(nextWave, spawnUltimate);
     this.snapshot = {
       ...this.snapshot,
       wave: nextWave,
       typedIndex: 0,
-      prompt: pickPrompt(nextWave + stats.correct, nextEnemy.kind === 'boss'),
+      prompt: pickPrompt(nextWave + stats.correct, nextEnemy.kind !== 'minion'),
       enemy: nextEnemy,
       stats: nextStats,
       attackFlash: 420,
@@ -204,7 +226,7 @@ export const getAccuracy = (stats: GameStats): number => (
 
 export const getWeakestKey = (stats: GameStats): string => {
   const entries = Object.entries(stats.weakKeys).sort((a, b) => b[1] - a[1]);
-  return entries[0]?.[0] ?? 'なし';
+  return entries[0]?.[0] ?? '??';
 };
 
 export const getWeakestFinger = (stats: GameStats): FingerId | 'none' => {
@@ -220,13 +242,13 @@ export type Rank = {
 };
 
 const rankTable: Array<Omit<Rank, 'nextTarget'>> = [
-  { label: 'D', title: 'ホームポジション見習い', description: 'まずは正しい指を見ながら、ゆっくり正確に打てています。' },
-  { label: 'C', title: 'ことばの旅人', description: 'キーの場所を少しずつ覚えています。毎日1分でかなり伸びます。' },
-  { label: 'B', title: 'タイピング剣士', description: '小学生の練習としてかなり良い速さです。ミスを減らすと一段上がります。' },
-  { label: 'A', title: 'キーボード勇者', description: '学校の課題入力ならかなり頼れる速さです。指使いも意識できています。' },
-  { label: 'S', title: '高速の魔法使い', description: '一般的な大人の実用速度に近いレベルです。正確さを保てば強いです。' },
-  { label: 'SS', title: '達人タイピスト', description: '熟練者レベルです。1分計測でもかなり高い集中力が必要です。' },
-  { label: 'SSS', title: '伝説の入力勇者', description: '人間の高速タイピング領域に迫る速さです。正確率も含めて別格です。' },
+  { label: 'D', title: '???????????', description: '???????????????????????????' },
+  { label: 'C', title: '??????', description: '???????????????????1??????????' },
+  { label: 'B', title: '???????', description: '??????????????????????????????????' },
+  { label: 'A', title: '???????', description: '?????????????????????????????????' },
+  { label: 'S', title: '???????', description: '????????????????????????????????' },
+  { label: 'SS', title: '???????', description: '?????????1???????????????????' },
+  { label: 'SSS', title: '???????', description: '????????????????????????????????' },
 ];
 
 const rankThresholds = [0, 35, 70, 110, 160, 220, 300];

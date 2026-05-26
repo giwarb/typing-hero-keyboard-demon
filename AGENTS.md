@@ -3,7 +3,10 @@
 - Always verify the game in both landscape and portrait browser viewports before shipping visual changes.
 - Required viewport checks:
   - Desktop landscape: `1672x941`
+  - Medium landscape: `1024x768`
+  - Narrow landscape: `812x375`
   - Mobile portrait: `390x844`
+- During viewport checks, verify prompt text, romaji text, HUD labels, result text, and keyboard labels do not overflow their panels.
 - After deployment, verify the public GitHub Pages URL, not only localhost.
 - Public deployment checks must confirm:
   - No `404` responses for `assets/generated/*`

@@ -30,6 +30,7 @@ export class BattleScene extends Phaser.Scene {
     this.load.image('enemy-book', assetUrl('assets/generated/enemy-book.png'));
     this.load.image('enemy-carrot', assetUrl('assets/generated/enemy-carrot.png'));
     this.load.image('enemy-robot', assetUrl('assets/generated/enemy-robot.png'));
+    this.load.image('enemy-ultimate-dragon', assetUrl('assets/generated/enemy-ultimate-dragon.png'));
     this.load.image('fx-slash', assetUrl('assets/generated/fx-slash.png'));
     this.load.image('fx-magic', assetUrl('assets/generated/fx-magic.png'));
     this.load.image('fx-hit', assetUrl('assets/generated/fx-hit.png'));
@@ -88,6 +89,11 @@ export class BattleScene extends Phaser.Scene {
       this.enemy.setTexture(snapshot.enemy.sprite);
       this.enemy.setScale(snapshot.enemy.scale);
     }
+    if (snapshot.enemy.tint) {
+      this.enemy.setTint(snapshot.enemy.tint);
+    } else {
+      this.enemy.clearTint();
+    }
     if (snapshot.attackFlash > 0) {
       this.attackT = snapshot.attackFlash;
       this.playerFx.setTexture(snapshot.enemy.kind === 'boss' ? 'fx-magic' : 'fx-slash');
@@ -106,6 +112,7 @@ export class BattleScene extends Phaser.Scene {
   private createEnemyImage(snapshot: GameSnapshot): Phaser.GameObjects.Image {
     return this.add.image(1080, 376, snapshot.enemy.sprite)
       .setOrigin(0.5, 1)
-      .setScale(snapshot.enemy.scale);
+      .setScale(snapshot.enemy.scale)
+      .setTint(snapshot.enemy.tint ?? 0xffffff);
   }
 }

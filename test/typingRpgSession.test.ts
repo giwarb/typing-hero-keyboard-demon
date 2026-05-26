@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { minionPrompts } from '../src/game/content/words';
 import { getAccuracy, getWeakestFinger, getWeakestKey, TypingRpgSession } from '../src/game/simulation/state';
 
 describe('TypingRpgSession', () => {
@@ -50,5 +51,14 @@ describe('TypingRpgSession', () => {
 
     expect(snapshot.timeLeft).toBe(0);
     expect(snapshot.ended).toBe(true);
+  });
+
+  it('has a large prompt pool using school-style romaji spellings', () => {
+    expect(minionPrompts.length).toBeGreaterThan(700);
+    const joined = minionPrompts.map((prompt) => prompt.romaji).join(' ');
+    expect(joined).not.toContain('TSU');
+    expect(joined).not.toContain('SHI');
+    expect(joined).not.toContain('CHI');
+    expect(joined).not.toContain('FU');
   });
 });

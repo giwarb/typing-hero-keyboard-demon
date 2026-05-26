@@ -392,10 +392,14 @@ body,
   box-shadow: inset 0 -7px 0 rgba(165, 74, 24, .17);
 }
 
-.finger:nth-child(1) { height: 78px; }
-.finger:nth-child(2) { height: 102px; }
-.finger:nth-child(3) { height: 118px; }
-.finger:nth-child(4) { height: 100px; }
+.left .finger:nth-child(1),
+.right .finger:nth-child(4) { height: 78px; }
+.left .finger:nth-child(2),
+.right .finger:nth-child(3) { height: 102px; }
+.left .finger:nth-child(3),
+.right .finger:nth-child(2) { height: 118px; }
+.left .finger:nth-child(4),
+.right .finger:nth-child(1) { height: 100px; }
 
 .finger small {
   position: absolute;
@@ -543,7 +547,7 @@ body,
   100% { transform: translateX(0); }
 }
 
-@media (max-width: 900px), (max-height: 620px) {
+@media (max-width: 1100px), (max-height: 620px) {
   .top-hud {
     left: 10px;
     right: 10px;
@@ -605,6 +609,78 @@ body,
 
   .palm {
     bottom: -82px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .top-hud {
+    top: 6px;
+    left: 8px;
+    right: 8px;
+    grid-template-columns: 1fr 1fr 1.35fr;
+    gap: 7px;
+  }
+
+  .hud-panel,
+  .enemy-panel {
+    min-height: 44px;
+    font-size: 15px;
+  }
+
+  .enemy-panel {
+    grid-column: auto;
+    padding: 6px 10px;
+  }
+
+  .enemy-panel strong {
+    margin-bottom: 2px;
+    font-size: 14px;
+  }
+
+  .hp-row {
+    font-size: 13px;
+  }
+
+  .lesson-card {
+    top: 62px;
+    width: min(460px, 58vw);
+    padding: 8px 12px;
+  }
+
+  .prompt-kana {
+    min-height: 34px;
+    font-size: clamp(28px, 8vh, 44px);
+  }
+
+  .prompt-romaji {
+    min-height: 34px;
+    padding-top: 6px;
+    font-size: clamp(22px, 7vh, 34px);
+  }
+
+  .keyboard-dock {
+    width: min(760px, calc(100vw - 12px));
+  }
+
+  .keyboard {
+    height: 148px;
+  }
+
+  .key {
+    border-width: 2px;
+  }
+
+  .key b {
+    font-size: 11px;
+  }
+
+  .key small {
+    font-size: 7px;
+  }
+
+  .guide-line,
+  .hands {
+    display: none;
   }
 }
 
@@ -672,6 +748,18 @@ body,
 
   .keyboard {
     height: min(260px, 31vh);
+  }
+
+  .key {
+    border-width: 2px;
+  }
+
+  .key b {
+    font-size: 12px;
+  }
+
+  .key small {
+    font-size: 8px;
   }
 
   .guide-line {
