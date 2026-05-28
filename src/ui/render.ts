@@ -1,3 +1,4 @@
+import { getSyllableVariants } from '../game/content/words';
 import { fingerNames, fingerTone, getFingerForKey, jisKeyboard, type FingerId } from '../game/input/keyboard';
 import { getAccuracy, getRank, getWeakestFinger, getWeakestKey, type GameSnapshot, type GameStats } from '../game/simulation/state';
 
@@ -56,7 +57,7 @@ export const buildUi = (mount: HTMLElement): UiHandles => {
       </aside>
       <section class="keyboard-dock">
         <div data-role="keyboard" class="keyboard"></div>
-        <div class="guide-line"><span data-role="nextGuide">ホームポジションに指をおいて、スタート！</span></div>
+        <div class="guide-line"><span data-role="nextGuide">ホームポジションに指をおいて、スタート</span></div>
         <div data-role="hands" class="hands"></div>
       </section>
       <div data-role="startOverlay" class="modal is-open">
@@ -113,14 +114,9 @@ export const renderSnapshot = (ui: UiHandles, snapshot: GameSnapshot): void => {
   ui.accuracy.textContent = `${getAccuracy(snapshot.stats)}%`;
   ui.combo.textContent = `${snapshot.stats.streak}`;
 
-  const nextKey = snapshot.prompt.romaji[snapshot.typedIndex] ?? '';
-  ui.promptRomaji.replaceChildren(...snapshot.prompt.romaji.split('').map((char, index) => {
-    const span = document.createElement('span');
-    span.textContent = char;
-    span.className = index < snapshot.typedIndex ? 'done' : index === snapshot.typedIndex ? 'next' : '';
-    return span;
-  }));
+  renderRomaji(ui.promptRomaji, snapshot);
 
+  const nextKey = snapshot.prompt.syllables.length ? getNextKey(snapshot) : '';
   const finger = nextKey ? getFingerForKey(nextKey) : 'thumb';
   ui.nextGuide.textContent = nextKey
     ? `つぎは ${nextKey} キー：${fingerNames[finger]}で押して、ホームポジションへ`
@@ -130,6 +126,38 @@ export const renderSnapshot = (ui: UiHandles, snapshot: GameSnapshot): void => {
   markActiveFinger(ui.hands, finger, snapshot.lastMistake !== null);
 
   if (snapshot.ended) renderResult(ui, snapshot.stats);
+};
+
+const getActiveVariant = (snapshot: GameSnapshot, syllable: string): string => (
+  getSyllableVariants(syllable).find((variant) => variant.startsWith(snapshot.currentInput))
+  ?? getSyllableVariants(syllable)[0]
+  ?? syllable
+);
+
+const getNextKey = (snapshot: GameSnapshot): string => {
+  const syllable = snapshot.prompt.syllables[snapshot.typedSyllableIndex];
+  if (!syllable) return '';
+  const active = getActiveVariant(snapshot, syllable);
+  return active[snapshot.currentInput.length] ?? '';
+};
+
+const renderRomaji = (target: HTMLElement, snapshot: GameSnapshot): void => {
+  target.replaceChildren(...snapshot.prompt.syllables.map((syllable, index) => {
+    const span = document.createElement('span');
+    const active = index === snapshot.typedSyllableIndex ? getActiveVariant(snapshot, syllable) : getSyllableVariants(syllable)[0];
+    span.textContent = index === snapshot.typedSyllableIndex
+      ? active.slice(snapshot.currentInput.length)
+      : active;
+    span.className = index < snapshot.typedSyllableIndex
+      ? 'done'
+      : index === snapshot.typedSyllableIndex
+        ? 'next'
+        : '';
+    if (index === snapshot.typedSyllableIndex && snapshot.currentInput.length > 0) {
+      span.dataset.typed = snapshot.currentInput;
+    }
+    return span;
+  }));
 };
 
 const renderKeyboard = (keyboard: HTMLElement): void => {
@@ -154,8 +182,8 @@ const renderHands = (hands: HTMLElement): void => {
       const el = document.createElement('div');
       el.className = `finger finger-${fingerTone[finger]}`;
       el.dataset.finger = finger;
-      const sideName = side === 'left' ? '左手' : '右手';
-      el.innerHTML = `<span></span><small>${fingerNames[finger].replace(`${sideName} `, '')}</small>`;
+      const sideName = side === 'left' ? '左手 ' : '右手 ';
+      el.innerHTML = `<span></span><small>${fingerNames[finger].replace(sideName, '')}</small>`;
       hand.append(el);
     });
     const palm = document.createElement('div');
@@ -189,14 +217,14 @@ const renderResult = (ui: UiHandles, stats: GameStats): void => {
   const speed = Math.round(stats.correct);
   const nextLine = rank.nextTarget
     ? `次のランクまで、正確にあと ${Math.max(0, rank.nextTarget - speed)} 文字/分が目標！`
-    : 'SSSランク到達！ここからは正確さと安定感の勝負！';
+    : 'SSSランク到達！この正確さと安定感は伝説級！';
   ui.resultBody.innerHTML = `
     <div class="rank-card rank-${rank.label.toLowerCase()}">
       <span>ランク</span>
       <b>${rank.label}</b>
       <strong>${rank.title}</strong>
       <p>${rank.description}</p>
-      <small>人間の高速タイピングは日本語ローマ字換算で300文字/分を超えるとかなり上級。SSSはその領域を目標にしています。</small>
+      <small>日本語ローマ字入力で300文字/分を超えるとかなり上級。SS以上は正確さも必要です。</small>
     </div>
     <p class="result-comment">すごい！ ${stats.defeated}体のモンスターをたおした！ ${nextLine}</p>
     <dl>

@@ -1,5 +1,5 @@
 import { type EnemyKind, getEnemyForWave } from '../content/enemies';
-import { pickPrompt, type Prompt } from '../content/words';
+import { getSyllableVariants, isSyllableInputCandidate, isSyllableInputComplete, pickPrompt, type Prompt } from '../content/words';
 import { getFingerForKey, type FingerId } from '../input/keyboard';
 
 export type { EnemyKind };
@@ -36,6 +36,8 @@ export type GameSnapshot = {
   wave: number;
   prompt: Prompt;
   typedIndex: number;
+  typedSyllableIndex: number;
+  currentInput: string;
   enemy: EnemyState;
   stats: GameStats;
   lastMistake: string | null;
@@ -125,10 +127,13 @@ export class TypingRpgSession {
 
     const key = rawKey.toUpperCase();
     const expected = this.nextKey();
+    const current = this.currentSyllable();
+    if (!current) return { snapshot: this.getSnapshot(), event: 'none' };
+    const nextInput = `${this.snapshot.currentInput}${key}`;
     const stats = { ...this.snapshot.stats };
     stats.typed += 1;
 
-    if (key !== expected) {
+    if (!isSyllableInputCandidate(current, nextInput)) {
       const weakFingers = { ...stats.weakFingers };
       const weakKeys = { ...stats.weakKeys };
       const finger = getFingerForKey(expected);
@@ -146,9 +151,22 @@ export class TypingRpgSession {
     stats.correct += 1;
     stats.streak += 1;
     stats.score += 1 + Math.floor(stats.streak / 20);
-    const typedIndex = this.snapshot.typedIndex + 1;
-    if (typedIndex < this.snapshot.prompt.romaji.length) {
-      this.snapshot = { ...this.snapshot, typedIndex, stats, lastMistake: null };
+    const syllableComplete = isSyllableInputComplete(current, nextInput);
+    const typedSyllableIndex = syllableComplete
+      ? this.snapshot.typedSyllableIndex + 1
+      : this.snapshot.typedSyllableIndex;
+    const currentInput = syllableComplete ? '' : nextInput;
+    const typedIndex = this.canonicalTypedIndex(typedSyllableIndex, currentInput);
+
+    if (typedSyllableIndex < this.snapshot.prompt.syllables.length) {
+      this.snapshot = {
+        ...this.snapshot,
+        typedIndex,
+        typedSyllableIndex,
+        currentInput,
+        stats,
+        lastMistake: null,
+      };
       return { snapshot: this.getSnapshot(), event: 'correct' };
     }
 
@@ -158,6 +176,8 @@ export class TypingRpgSession {
       this.snapshot = {
         ...this.snapshot,
         typedIndex: 0,
+        typedSyllableIndex: 0,
+        currentInput: '',
         prompt: pickPrompt(this.snapshot.wave + stats.correct, enemy.kind !== 'minion'),
         enemy,
         stats,
@@ -185,6 +205,8 @@ export class TypingRpgSession {
       ...this.snapshot,
       wave: nextWave,
       typedIndex: 0,
+      typedSyllableIndex: 0,
+      currentInput: '',
       prompt: pickPrompt(nextWave + stats.correct, nextEnemy.kind !== 'minion'),
       enemy: nextEnemy,
       stats: nextStats,
@@ -195,7 +217,13 @@ export class TypingRpgSession {
   }
 
   nextKey(): string {
-    return this.snapshot.prompt.romaji[this.snapshot.typedIndex] ?? '';
+    const syllable = this.currentSyllable();
+    if (!syllable) return '';
+    const input = this.snapshot.currentInput;
+    const active = getSyllableVariants(syllable).find((variant) => variant.startsWith(input))
+      ?? getSyllableVariants(syllable)[0]
+      ?? syllable;
+    return active[input.length] ?? '';
   }
 
   getSnapshot(): GameSnapshot {
@@ -211,12 +239,25 @@ export class TypingRpgSession {
       wave: 0,
       prompt: pickPrompt(0, false),
       typedIndex: 0,
+      typedSyllableIndex: 0,
+      currentInput: '',
       enemy,
       stats: createStats(),
       lastMistake: null,
       attackFlash: 0,
       hurtFlash: 0,
     };
+  }
+
+  private currentSyllable(): string {
+    return this.snapshot.prompt.syllables[this.snapshot.typedSyllableIndex] ?? '';
+  }
+
+  private canonicalTypedIndex(typedSyllableIndex: number, currentInput: string): number {
+    const completed = this.snapshot.prompt.syllables
+      .slice(0, typedSyllableIndex)
+      .join('').length;
+    return completed + currentInput.length;
   }
 }
 
@@ -226,7 +267,7 @@ export const getAccuracy = (stats: GameStats): number => (
 
 export const getWeakestKey = (stats: GameStats): string => {
   const entries = Object.entries(stats.weakKeys).sort((a, b) => b[1] - a[1]);
-  return entries[0]?.[0] ?? '??';
+  return entries[0]?.[0] ?? 'なし';
 };
 
 export const getWeakestFinger = (stats: GameStats): FingerId | 'none' => {
@@ -242,13 +283,13 @@ export type Rank = {
 };
 
 const rankTable: Array<Omit<Rank, 'nextTarget'>> = [
-  { label: 'D', title: '???????????', description: '???????????????????????????' },
-  { label: 'C', title: '??????', description: '???????????????????1??????????' },
-  { label: 'B', title: '???????', description: '??????????????????????????????????' },
-  { label: 'A', title: '???????', description: '?????????????????????????????????' },
-  { label: 'S', title: '???????', description: '????????????????????????????????' },
-  { label: 'SS', title: '???????', description: '?????????1???????????????????' },
-  { label: 'SSS', title: '???????', description: '????????????????????????????????' },
+  { label: 'D', title: 'ゆっくり見習い', description: 'まずは正しいキーと指を見ながら、あわてず一文字ずつ進もう。' },
+  { label: 'C', title: 'れんしゅう勇者', description: 'ホームポジションを思い出しながら、1分の冒険に慣れてきたね。' },
+  { label: 'B', title: 'ことばの戦士', description: '短い言葉を安定して打てているよ。ミスを減らすと次へ届く。' },
+  { label: 'A', title: 'はやうち騎士', description: '小学生としてかなり速いペース。指の戻りも意識できているね。' },
+  { label: 'S', title: 'キーボード勇者', description: '日本語ローマ字入力でかなり上級。正確さを保てているのが強い。' },
+  { label: 'SS', title: 'タイピング剣聖', description: '1分でここまで打てるのは本当に速い。学校でも自慢できる力。' },
+  { label: 'SSS', title: '伝説の光速勇者', description: '人間の高速タイピングでも上位級。正確さと集中力の両方がすごい。' },
 ];
 
 const rankThresholds = [0, 35, 70, 110, 160, 220, 300];

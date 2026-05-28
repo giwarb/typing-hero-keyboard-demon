@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { minionPrompts } from '../src/game/content/words';
+import { getSyllableVariants, isSyllableInputCandidate, isSyllableInputComplete, minionPrompts } from '../src/game/content/words';
 import { getAccuracy, getWeakestFinger, getWeakestKey, TypingRpgSession } from '../src/game/simulation/state';
 
 describe('TypingRpgSession', () => {
@@ -60,5 +60,18 @@ describe('TypingRpgSession', () => {
     expect(joined).not.toContain('SHI');
     expect(joined).not.toContain('CHI');
     expect(joined).not.toContain('FU');
+  });
+
+  it('accepts common alternate romaji input patterns', () => {
+    expect(getSyllableVariants('ZI')).toContain('JI');
+    expect(getSyllableVariants('SI')).toContain('SHI');
+    expect(getSyllableVariants('SI')).toContain('CI');
+    expect(getSyllableVariants('TI')).toContain('CHI');
+    expect(getSyllableVariants('TU')).toContain('TSU');
+    expect(getSyllableVariants('SYU')).toContain('SHU');
+    expect(getSyllableVariants('ZYO')).toContain('JO');
+    expect(isSyllableInputCandidate('ZI', 'J')).toBe(true);
+    expect(isSyllableInputComplete('ZI', 'JI')).toBe(true);
+    expect(isSyllableInputComplete('TU', 'TSU')).toBe(true);
   });
 });

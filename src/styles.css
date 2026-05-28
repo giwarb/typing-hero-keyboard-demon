@@ -132,7 +132,7 @@ body,
 
 .enemy-panel {
   padding: 12px 18px;
-  min-height: 86px;
+  min-height: 96px;
 }
 
 .enemy-panel strong {
@@ -183,28 +183,36 @@ body,
 }
 
 .prompt-kana {
-  min-height: 90px;
+  min-height: 96px;
   color: #060606;
-  font-size: clamp(42px, 7vw, 82px);
+  font-size: clamp(34px, 5.4vw, 74px);
   font-weight: 1000;
   letter-spacing: 0;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.08;
+  display: grid;
+  place-items: center;
 }
 
 .prompt-romaji {
   display: flex;
   min-height: 66px;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: clamp(4px, 0.7vw, 12px);
+  gap: clamp(4px, 0.6vw, 10px) clamp(6px, 0.75vw, 12px);
   border-top: 2px dashed #b7b1a6;
   padding-top: 14px;
-  font-size: clamp(26px, 4.5vw, 54px);
+  font-size: clamp(20px, 2.9vw, 43px);
   font-weight: 1000;
+  line-height: 1.18;
 }
 
 .prompt-romaji span {
-  min-width: 0.72em;
+  min-width: 1.25em;
+  max-width: 100%;
   color: #666;
+  overflow-wrap: anywhere;
 }
 
 .prompt-romaji .done {
@@ -212,12 +220,17 @@ body,
 }
 
 .prompt-romaji .next {
-  padding: 0 10px;
+  padding: 0 8px;
   border: 4px solid #e3272f;
   border-radius: 8px;
   background: #ffe15b;
   color: #060606;
   box-shadow: 0 0 0 4px rgba(255, 213, 39, 0.45);
+}
+
+.prompt-romaji .next::before {
+  content: attr(data-typed);
+  color: #258a39;
 }
 
 .side-stats {
@@ -436,6 +449,8 @@ body,
 
 .modal-panel {
   width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 28px);
+  overflow: auto;
   padding: 28px;
   border: 5px solid #f6bf54;
   border-radius: 8px;
@@ -444,11 +459,21 @@ body,
   text-align: center;
 }
 
+.modal-panel.result {
+  width: min(620px, calc(100vw - 24px));
+  padding: 18px 24px 14px;
+}
+
 .modal-panel h1 {
   margin: 0 0 12px;
   color: #ffe35b;
   font-size: clamp(28px, 5vw, 46px);
   line-height: 1.15;
+}
+
+.modal-panel.result h1 {
+  margin-bottom: 8px;
+  font-size: clamp(28px, 4vw, 42px);
 }
 
 .modal-panel p {
@@ -478,20 +503,20 @@ body,
 
 .result-body dl {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 7px 22px;
-  margin: 16px auto 22px;
-  max-width: 390px;
+  grid-template-columns: 1fr auto 1fr auto;
+  gap: 5px 16px;
+  margin: 10px auto 12px;
+  max-width: 540px;
   text-align: left;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
 }
 
 .rank-card {
   display: grid;
-  gap: 4px;
-  margin: 8px auto 14px;
-  padding: 14px;
+  gap: 3px;
+  margin: 4px auto 10px;
+  padding: 10px 12px;
   max-width: 430px;
   border: 3px solid #ffd447;
   border-radius: 8px;
@@ -506,13 +531,15 @@ body,
 
 .rank-card b {
   color: #ffe15b;
-  font-size: clamp(54px, 8vw, 84px);
+  font-size: clamp(48px, 7vw, 72px);
   line-height: 0.95;
 }
 
 .rank-card strong {
   color: #fff3a8;
-  font-size: 21px;
+  font-size: clamp(16px, 3vw, 21px);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .rank-card p,
@@ -521,10 +548,15 @@ body,
   color: #e7f6ff;
   line-height: 1.45;
   text-shadow: none;
+  overflow-wrap: anywhere;
+}
+
+.rank-card p {
+  font-size: 15px;
 }
 
 .rank-card small {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .result-body dt {
@@ -538,6 +570,16 @@ body,
 
 .result-comment {
   color: #fff3a8;
+  margin: 0 auto 8px;
+  max-width: 520px;
+  font-size: 17px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.modal-panel.result .primary-button {
+  padding: 9px 28px;
+  font-size: 21px;
 }
 
 @keyframes wrong-key {
@@ -578,11 +620,13 @@ body,
   }
 
   .prompt-kana {
-    min-height: 54px;
+    min-height: 68px;
+    font-size: clamp(30px, 5.8vw, 54px);
   }
 
   .prompt-romaji {
     min-height: 46px;
+    font-size: clamp(18px, 3.4vw, 34px);
   }
 
   .side-stats {
@@ -648,14 +692,14 @@ body,
   }
 
   .prompt-kana {
-    min-height: 34px;
-    font-size: clamp(28px, 8vh, 44px);
+    min-height: 40px;
+    font-size: clamp(22px, 6.6vh, 38px);
   }
 
   .prompt-romaji {
     min-height: 34px;
     padding-top: 6px;
-    font-size: clamp(22px, 7vh, 34px);
+    font-size: clamp(16px, 5.4vh, 28px);
   }
 
   .keyboard-dock {
@@ -724,9 +768,8 @@ body,
   }
 
   .prompt-kana {
-    min-height: 44px;
+    min-height: 54px;
     font-size: clamp(30px, 10vw, 58px);
-    white-space: normal;
     line-height: 1.1;
   }
 
@@ -783,5 +826,10 @@ body,
 
   .side-stats {
     display: none;
+  }
+
+  .result-body dl {
+    grid-template-columns: 1fr auto;
+    max-width: 340px;
   }
 }

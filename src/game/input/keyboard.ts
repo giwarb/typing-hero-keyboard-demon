@@ -82,6 +82,7 @@ export const keyLookup = new Map<string, KeyInfo>(
 );
 
 export const normalizeTypedKey = (keyValue: string): string => {
+  if (keyValue === '¥') return '\\';
   if (keyValue.length === 1) return keyValue.toUpperCase();
   return keyValue;
 };
